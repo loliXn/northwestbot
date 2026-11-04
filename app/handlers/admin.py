@@ -171,7 +171,7 @@ async def _show_public_settings_menu(
 @public_router.message(Command("start"))
 async def handle_start(message: Message, db: Database) -> None:
     greeting = (
-        "PingSubs helps you manage shared subscriptions. "
+        "I help you manage shared subscriptions. "
         "Admins keep the schedule up to date and I send reminders on time."
     )
 
@@ -1040,7 +1040,7 @@ async def handle_public_account_rename_input(
 
 async def send_admin_help(message: Message) -> None:
     text = (
-        "ℹ️ PingSubs helps you manage shared subscriptions, users, and payment reminders.\n\n"
+        "ℹ️ I help you manage shared subscriptions, users, and payment reminders.\n\n"
         "Buttons:\n"
         "👥 Users — add, edit, and remove users.\n"
         "📋 Subscriptions — manage plans and reminders.\n"

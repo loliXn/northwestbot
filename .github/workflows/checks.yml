@@ -59,13 +59,13 @@ jobs:
         with:
           persist-credentials: false
       # The deployment builds this image; a Dockerfile mistake stops here.
-      - run: docker build --pull --tag pingsubs:ci .
+      - run: docker build --pull --tag northwest:ci .
       # .dockerignore lets in only the files it lists, and some modules load only
       # when the bot starts, so a missing one would pass the build and crash
       # the bot. Import every module, offline.
       - run: >-
           docker run --rm --network none
-          pingsubs:ci python -c "import importlib, sys; [importlib.import_module(m) for m in sys.argv[1:]]"
+          northwest:ci python -c "import importlib, sys; [importlib.import_module(m) for m in sys.argv[1:]]"
           $(git ls-files 'app/*.py' main.py | sed -e 's/[.]py$//' -e 's#/__init__$##' -e 's#/#.#g')
 
   dependencies:

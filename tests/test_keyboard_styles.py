@@ -378,7 +378,7 @@ class LayoutTests(unittest.TestCase):
 
 class InviteCopyLinkTests(unittest.TestCase):
     def test_copy_link_button(self):
-        link = "https://t.me/pingsubs_bot?start=join_abc"
+        link = "https://t.me/example_bot?start=join_abc"
         dumped = _dump(invite_link_keyboard(link))
         self.assertEqual(
             dumped,
@@ -386,7 +386,7 @@ class InviteCopyLinkTests(unittest.TestCase):
         )
 
     def test_copy_text_is_trimmed_to_telegram_limit(self):
-        link = "https://t.me/pingsubs_bot?start=" + "x" * 300
+        link = "https://t.me/example_bot?start=" + "x" * 300
         dumped = _dump(invite_link_keyboard(link))
         self.assertEqual(len(dumped["inline_keyboard"][0][0]["copy_text"]["text"]), COPY_TEXT_MAX_LEN)
 

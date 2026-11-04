@@ -61,13 +61,13 @@ jobs:
             # would still look deployed. Compare with the count right after the
             # start, since an unchanged container keeps its old restarts.
             # The bot's logs name Telegram users, so they stay on the server.
-            container=$(docker compose ps -q pingsubs)
+            container=$(docker compose ps -q bot)
             [ -n "$container" ] || { echo "The bot container is not running."; exit 1; }
             restarts=$(docker inspect -f '{{.RestartCount}}' "$container")
             sleep 20
             state=$(docker inspect -f '{{.State.Status}}, restarts: {{.RestartCount}}' "$container")
-            echo "pingsubs: $state"
+            echo "bot: $state"
             if [ "$state" != "running, restarts: $restarts" ]; then
-              echo "The bot did not stay up; run docker compose logs pingsubs on the server."
+              echo "The bot did not stay up; run docker compose logs bot on the server."
               exit 1
             fi

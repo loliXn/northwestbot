@@ -49,8 +49,8 @@ python -m pip_audit -r requirements.txt
 CI also builds the Docker image and imports the bot inside it:
 
 ```bash
-docker build --tag pingsubs:ci .
-docker run --rm --network none pingsubs:ci python -c "import main"
+docker build --tag northwest:ci .
+docker run --rm --network none northwest:ci python -c "import main"
 ```
 
 The tests run offline: they use temporary databases and never contact Telegram

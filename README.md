@@ -1,7 +1,7 @@
 <p align="center">
-  <img src="docs/assets/pingsubs.jpg" alt="PingSubs icon" width="128" height="128">
+  <img src="docs/assets/icon.jpg" alt="Northwest icon" width="128" height="128">
 </p>
-<h1 align="center">PingSubs</h1>
+<h1 align="center">Northwest</h1>
 
 A self-hosted Telegram bot for shared subscriptions, payment reminders, and member balances.
 Built with Python 3.13, aiogram, and SQLite.
@@ -10,7 +10,7 @@ Built with Python 3.13, aiogram, and SQLite.
 - Send scheduled reminders, track payment confirmations, and view payment reports.
 - Invite members through personal links and manage balance top-ups with admin approval.
 
-Payments happen outside the bot; PingSubs records them.
+Payments happen outside the bot; the bot records them.
 
 ## Deploy with Docker
 
@@ -40,7 +40,7 @@ To update an existing installation:
 
 ```bash
 git pull --ff-only
-docker compose up -d --build
+docker compose up -d --build --remove-orphans
 ```
 
 Stop with `docker compose down`. Back up `data/` while the bot is stopped, and keep
