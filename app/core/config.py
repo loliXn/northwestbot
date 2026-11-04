@@ -4,6 +4,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Tuple
+from urllib.parse import urlsplit
 
 from dotenv import load_dotenv
 from app.core.reminders import (
@@ -12,6 +13,42 @@ from app.core.reminders import (
     normalize_time_string,
     normalize_timezone_name,
 )
+
+# Schemes aiohttp-socks understands; it resolves Telegram's address on the
+# proxy side, so a server whose DNS is blocked works too.
+TELEGRAM_PROXY_SCHEMES = ("socks5", "socks4", "http")
+TELEGRAM_API_URL_SCHEMES = ("https", "http")
+
+
+def parse_telegram_proxy(value: str | None) -> str | None:
+    """Validate TELEGRAM_PROXY; empty means a direct connection.
+
+    The error messages never repeat the value, which may hold a password.
+    """
+    raw = (value or "").strip()
+    if not raw:
+        return None
+    parts = urlsplit(raw)
+    if parts.scheme not in TELEGRAM_PROXY_SCHEMES:
+        raise RuntimeError("TELEGRAM_PROXY must start with socks5://, socks4:// or http://")
+    try:
+        port = parts.port
+    except ValueError:
+        port = None
+    if not parts.hostname or port is None:
+        raise RuntimeError("TELEGRAM_PROXY needs a host and a port, e.g. socks5://127.0.0.1:1080")
+    return raw
+
+
+def parse_telegram_api_url(value: str | None) -> str | None:
+    """Validate TELEGRAM_API_URL; empty means the official https://api.telegram.org."""
+    raw = (value or "").strip().rstrip("/")
+    if not raw:
+        return None
+    parts = urlsplit(raw)
+    if parts.scheme not in TELEGRAM_API_URL_SCHEMES or not parts.hostname:
+        raise RuntimeError("TELEGRAM_API_URL must be an http(s) URL, e.g. https://botapi.example.com")
+    return raw
 
 
 @dataclass
@@ -24,6 +61,8 @@ class Settings:
     base_reminder_time: str
     base_timezone: str
     admin_ids: Tuple[int, ...]
+    telegram_proxy: str | None = None
+    telegram_api_url: str | None = None
 
     @classmethod
     def load(cls) -> "Settings":
@@ -80,4 +119,6 @@ class Settings:
             base_reminder_time=base_reminder_time,
             base_timezone=base_timezone,
             admin_ids=admin_ids,
+            telegram_proxy=parse_telegram_proxy(os.getenv("TELEGRAM_PROXY")),
+            telegram_api_url=parse_telegram_api_url(os.getenv("TELEGRAM_API_URL")),
         )

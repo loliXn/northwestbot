@@ -32,7 +32,10 @@ docker compose up -d --build
 docker compose logs -f --tail=100
 ```
 
-The bot uses long polling: no domain, HTTPS certificate, or inbound port is needed.
+The bot uses long polling: no domain, HTTPS certificate, or inbound port is needed,
+but the server must reach `api.telegram.org`. Check with
+`curl -sS -m 15 -o /dev/null -w '%{http_code}\n' https://api.telegram.org` (`302` is fine).
+If the bot cannot reach Telegram at startup, it logs `Cannot reach Telegram` and exits.
 SQLite data is stored in `./data/` and survives container recreation. Keep the default
 `DATABASE_PATH` when using the included Compose file so it stays inside the mounted directory.
 
@@ -101,11 +104,29 @@ variables take precedence. The data directory is created automatically.
 | `BASE_TIMEZONE` | `Europe/Moscow` | Default IANA timezone, e.g. `Europe/Belgrade` |
 | `TARGET_CURRENCY` | `RUB` | Default currency for conversions |
 | `CURRENCY_ROUNDING` | `precise` | `precise`, `floor`, `round`, or `ceil` |
+| `TELEGRAM_PROXY` | Empty | Proxy for Telegram traffic: `socks5://`, `socks4://`, or `http://` with host and port |
+| `TELEGRAM_API_URL` | Empty | Another Bot API server instead of `https://api.telegram.org` |
 
 Rounding, base reminder time, and timezone seed a new database and can be changed
 later in the admin **Settings**; saved values take precedence over the environment on
 later starts. `TARGET_CURRENCY` is stored on the first launch only; to change it later,
 update the `target_currency` row in the `settings` table of the database.
+
+### When the server cannot reach Telegram
+
+Some networks block or throttle Telegram. Moving the bot to a server in another
+country is the most reliable fix. Otherwise, set one of these in `.env`:
+
+- `TELEGRAM_PROXY`: a SOCKS5, SOCKS4, or HTTP proxy outside the blocked network, e.g.
+  `socks5://203.0.113.10:1080`; put `user:password@` before the host if it needs a login.
+  Telegram's address is resolved by the proxy, so blocked DNS does not matter.
+- `TELEGRAM_API_URL`: the base URL of a [Bot API server](https://github.com/tdlib/telegram-bot-api)
+  or a relay that forwards `/bot<token>/<method>` requests to `api.telegram.org`.
+
+A proxy or relay sees the bot token and every message, so use only one you run or
+trust. The startup log names the route without credentials, e.g.
+`Connected to Telegram as @your_bot via api.telegram.org through proxy socks5://203.0.113.10:1080`.
+Exchange-rate requests do not use the proxy.
 
 Cross-currency amounts use exchange rates from [open.er-api.com](https://www.exchangerate-api.com)
 (the ExchangeRate-API open endpoint), fetched over outbound HTTPS and cached for six

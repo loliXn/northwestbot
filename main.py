@@ -12,6 +12,7 @@ from aiogram.types import BotCommand, LinkPreviewOptions
 
 from app.handlers import admin_router, public_router
 from app.infrastructure import AdminFilter, SettingsMiddleware
+from app.infrastructure.telegram import build_session, check_connection
 from app.core.config import Settings
 from app.core.reminders import normalize_timezone_name, parse_time_string
 from app.storage.db import Database
@@ -26,12 +27,22 @@ def _log_worker_exit(task: "asyncio.Task[None]") -> None:
         logging.getLogger("reminder_worker").error("Reminder worker terminated unexpectedly", exc_info=exc)
 
 
-async def main() -> None:
+async def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
     settings = Settings.load()
     db = Database(settings.database_path)
     await db.connect()
+    # Close the database on every way out: its worker thread would otherwise
+    # keep a failed bot process alive, so Docker would neither restart it nor
+    # show it as down.
+    try:
+        return await run(settings, db)
+    finally:
+        await db.close()
+
+
+async def run(settings: Settings, db: Database) -> int:
     for admin_id in settings.admin_ids:
         await db.add_admin(admin_id, f"Admin {admin_id}")
     stored_currency = await db.get_setting("target_currency")
@@ -67,59 +78,66 @@ async def main() -> None:
 
     bot = Bot(
         token=settings.bot_token,
+        session=build_session(settings),
         default=DefaultBotProperties(
             parse_mode=ParseMode.HTML,
             link_preview=LinkPreviewOptions(is_disabled=True),
         ),
     )
-    dp = Dispatcher(storage=MemoryStorage())
-
-    shared_middleware = SettingsMiddleware(settings, db, converter)
-    public_router.message.middleware(shared_middleware)
-    public_router.callback_query.middleware(shared_middleware)
-    admin_router.message.middleware(shared_middleware)
-    admin_router.callback_query.middleware(shared_middleware)
-
-    # The bot is a private assistant: ignore groups and channels so that
-    # payment details, balances, and the first-admin bootstrap never leak there.
-    for router in (public_router, admin_router):
-        router.message.filter(F.chat.type == ChatType.PRIVATE)
-        router.callback_query.filter(F.message.chat.type == ChatType.PRIVATE)
-
-    admin_filter = AdminFilter(db)
-    admin_router.message.filter(admin_filter)
-    admin_router.callback_query.filter(admin_filter)
-
-    dp.include_router(public_router)
-    dp.include_router(admin_router)
-
-    await bot.set_my_commands(
-        [
-            BotCommand(command="start", description="Launch the bot"),
-            BotCommand(command="help", description="Explain what the bot can do"),
-        ]
-    )
-
-    worker_task = asyncio.create_task(
-        reminder_worker(
-            bot,
-            db,
-            converter,
-            interval_seconds=settings.reminder_check_interval,
-            rounding_mode=settings.currency_rounding,
-        )
-    )
-    worker_task.add_done_callback(_log_worker_exit)
-
     try:
-        await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
+        if not await check_connection(bot, settings):
+            # A non-zero exit lets Docker restart the bot and the deployment fail.
+            return 1
+        dp = Dispatcher(storage=MemoryStorage())
+
+        shared_middleware = SettingsMiddleware(settings, db, converter)
+        public_router.message.middleware(shared_middleware)
+        public_router.callback_query.middleware(shared_middleware)
+        admin_router.message.middleware(shared_middleware)
+        admin_router.callback_query.middleware(shared_middleware)
+
+        # The bot is a private assistant: ignore groups and channels so that
+        # payment details, balances, and the first-admin bootstrap never leak there.
+        for router in (public_router, admin_router):
+            router.message.filter(F.chat.type == ChatType.PRIVATE)
+            router.callback_query.filter(F.message.chat.type == ChatType.PRIVATE)
+
+        admin_filter = AdminFilter(db)
+        admin_router.message.filter(admin_filter)
+        admin_router.callback_query.filter(admin_filter)
+
+        dp.include_router(public_router)
+        dp.include_router(admin_router)
+
+        await bot.set_my_commands(
+            [
+                BotCommand(command="start", description="Launch the bot"),
+                BotCommand(command="help", description="Explain what the bot can do"),
+            ]
+        )
+
+        worker_task = asyncio.create_task(
+            reminder_worker(
+                bot,
+                db,
+                converter,
+                interval_seconds=settings.reminder_check_interval,
+                rounding_mode=settings.currency_rounding,
+            )
+        )
+        worker_task.add_done_callback(_log_worker_exit)
+
+        try:
+            await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
+        finally:
+            worker_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await worker_task
+        return 0
     finally:
-        worker_task.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await worker_task
+        await bot.session.close()
         await converter.close()
-        await db.close()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    raise SystemExit(asyncio.run(main()))
