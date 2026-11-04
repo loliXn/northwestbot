@@ -22,7 +22,8 @@ cd northwestbot
 cp .env.example .env
 ```
 
-In `.env`, set `BOT_TOKEN` and put your numeric Telegram user ID into `ADMIN_IDS`.
+In `.env`, set `BOT_TOKEN` and put your numeric Telegram user ID into `ADMIN_IDS`
+(a bot such as @userinfobot replies with it).
 **Set the admin ID before the first launch:** with a fresh database and no configured
 admins, the first person to send `/start` becomes the administrator.
 
@@ -58,7 +59,8 @@ server. The deployment points the checkout at this repository over HTTPS and res
 it to the commit that passed the checks, so keep local changes out of that
 directory. It fails when the bot does not stay up for 20 seconds; the bot's logs
 stay on the server. In a fork, change the repository name in the workflow's `if:`
-condition and the installation path in its script.
+condition and the installation path in its script. GitHub keeps workflows off in a
+new fork until you enable them on the repository's **Actions** tab.
 
 </details>
 
