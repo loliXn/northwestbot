@@ -8,7 +8,6 @@ from aiogram import F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from aiogram import Bot
-from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.core.constants import (
     DATE_INPUT_FORMAT,
@@ -43,6 +42,7 @@ from app.ui.keyboards import (
     build_due_date_change_keyboard,
     comment_edit_keyboard,
     dialog_cancel_inline_keyboard,
+    subscription_delete_confirm_keyboard,
     subscription_payment_destination_keyboard,
     subscription_currency_keyboard,
     subscription_base_currency_keyboard,
@@ -1540,22 +1540,9 @@ async def handle_subscription_delete_prompt(
     callback: CallbackQuery,
     callback_data: SubscriptionAction,
 ) -> None:
-    builder = InlineKeyboardBuilder()
-    builder.button(
-        text="🗑 Yes, delete",
-        callback_data=SubscriptionAction(
-            action="confirm_delete",
-            subscription_id=callback_data.subscription_id,
-        ).pack(),
-        style="danger",
-    )
-    builder.button(
-        text="⬅️ Back",
-        callback_data=SubscriptionAction(action="more", subscription_id=callback_data.subscription_id).pack(),
-    )
     await callback.message.edit_text(
         "Are you sure you want to delete this subscription?",
-        reply_markup=builder.as_markup(),
+        reply_markup=subscription_delete_confirm_keyboard(callback_data.subscription_id),
     )
     await callback.answer()
 
