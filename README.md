@@ -17,8 +17,8 @@ Payments happen outside the bot; PingSubs records them.
 Requires Git, Docker with Compose, and a Telegram bot token from **@BotFather**.
 
 ```bash
-git clone https://github.com/dcip3/DCIP3.PingSubs.git
-cd DCIP3.PingSubs
+git clone https://github.com/loliXn/northwestbot.git
+cd northwestbot
 cp .env.example .env
 ```
 
@@ -49,7 +49,7 @@ Stop with `docker compose down`. Back up `data/` while the bot is stopped, and k
 <summary>Optional: GitHub Actions deployment</summary>
 
 [deploy.yml](.github/workflows/deploy.yml) deploys the tip of `main` over SSH once
-the repository checks pass. Prepare a working installation at `/opt/DCIP3.PingSubs`
+the repository checks pass. Prepare a working installation at `/opt/northwestbot`
 on the server and add the repository secrets `VDS_HOST`, `VDS_USER`, and
 `VDS_SSH_KEY`, plus `VDS_HOST_FINGERPRINT` to pin the server's host key: the `SHA256:...`
 value from `ssh-keygen -lf /etc/ssh/ssh_host_ecdsa_key.pub` on the server. The SSH user

@@ -24,7 +24,7 @@ jobs:
   deploy:
     # Only pushes to main of this repository; never a pull request or a fork.
     if: >-
-      github.repository == 'dcip3/DCIP3.PingSubs'
+      github.repository == 'loliXn/northwestbot'
       && github.event.workflow_run.conclusion == 'success'
       && github.event.workflow_run.event == 'push'
       && github.event.workflow_run.head_branch == 'main'
@@ -44,7 +44,7 @@ jobs:
           envs: DEPLOY_SHA,REPOSITORY_URL
           script: |
             set -eu
-            cd /opt/DCIP3.PingSubs
+            cd /opt/northwestbot
             # A forced fetch and a hard reset also survive a history rewrite
             # or a repository move.
             git remote set-url origin "$REPOSITORY_URL"
